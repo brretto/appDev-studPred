@@ -9,6 +9,8 @@ from .models import SurveyResponse, Prediction
 import gforms_client # CORRECTED IMPORT
 from ml.predictor import Predictor
 from ml.recommender import get_recommendation
+from .serializers import SurveyResponseSerializer # Add this import
+from rest_framework.generics import ListAPIView # Add this import
 
 # It's efficient to load the model once when the server starts
 # rather than loading it on every API call.
@@ -85,3 +87,29 @@ class SyncGoogleFormView(APIView):
             "message": f"Sync complete. Processed {new_responses_count} new responses.",
             "total_fetched": len(parsed_responses)
         }, status=status.HTTP_200_OK)
+    
+    
+class SurveyResponseListView(ListAPIView):
+    """
+    An API endpoint that returns a list of all survey responses
+    along with their predictions.
+    """
+    queryset = SurveyResponse.objects.all().order_by('-created_at') # Get all responses
+    serializer_class = SurveyResponseSerializer
+
+class PredictionSummaryView(APIView):
+    """
+    An API endpoint that returns a summary of prediction results,
+    perfect for a dashboard.
+    """
+    def get(self, request, *args, **kwargs):
+        pass_count = Prediction.objects.filter(predicted_result='PASS').count()
+        fail_count = Prediction.objects.filter(predicted_result='FAIL').count()
+        total_count = Prediction.objects.count()
+
+        summary_data = {
+            'pass_count': pass_count,
+            'fail_count': fail_count,
+            'total_count': total_count
+        }
+        return Response(summary_data, status=status.HTTP_200_OK)
